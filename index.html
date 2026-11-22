@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quit Game Scoreboard</title>
+<style>
+  :root{
+    --felt:#0f3d2e; --felt2:#0b2e22; --card:#fbf8f1; --ink:#1d1d1b; --muted:#6b6a64;
+    --gold:#e2b04a; --red:#d33a2c; --redbg:#fde3df; --green:#2e8b57;
+  }
+  *{box-sizing:border-box}
+  html{background:var(--felt2)}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--card);
+    background:radial-gradient(ellipse 120% 60% at top,var(--felt) 0%,var(--felt2) 100%) no-repeat;background-color:var(--felt2);min-height:100vh}
+  input[type=number]{-moz-appearance:textfield}
+  input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .wrap{max-width:1100px;margin:0 auto;padding:20px 16px 60px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+  h1{margin:0;font-size:clamp(22px,4vw,32px);letter-spacing:.5px}
+  h1 span{color:var(--gold)}
+  h2{font-size:18px;margin:0 0 12px}
+  .panel{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:18px;margin-bottom:18px}
+  input{font:inherit;padding:12px 14px;border-radius:10px;border:2px solid transparent;background:var(--card);color:var(--ink);width:100%;outline:none}
+  input:focus{border-color:var(--gold)}
+  button{font:inherit;font-weight:600;cursor:pointer;border:none;border-radius:10px;padding:12px 18px;background:var(--gold);color:#2a1d00}
+  button:hover{filter:brightness(1.06)}
+  button.ghost{background:transparent;color:var(--card);border:1px solid rgba(255,255,255,.3)}
+  button.danger{background:transparent;color:#ffb3aa;border:1px solid #ffb3aa66}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .row > input{flex:1;min-width:160px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .chip{background:var(--card);color:var(--ink);padding:8px 12px;border-radius:999px;display:flex;align-items:center;gap:8px;font-weight:600}
+  .chip button{padding:0 6px;background:none;color:var(--red);font-size:18px;line-height:1}
+  .hint{color:#cfd8d3;font-size:14px;margin:8px 0 0}
+  label.small{font-size:14px;color:#cfd8d3;display:block;margin-bottom:6px}
+
+  /* Scoreboard */
+  .board{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;margin-bottom:18px}
+  .pcard{background:var(--card);color:var(--ink);border-radius:16px;padding:16px 18px;position:relative;
+    box-shadow:0 6px 18px rgba(0,0,0,.3);transition:transform .2s}
+  .pcard .name{font-size:20px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:60px}
+  .pcard .score{font-size:clamp(48px,8vw,64px);font-weight:800;line-height:1;margin:10px 0 8px;font-variant-numeric:tabular-nums}
+  .pcard .left{font-size:14px;color:var(--muted)}
+  .bar{height:8px;background:#e7e2d6;border-radius:99px;overflow:hidden;margin-top:10px}
+  .bar i{display:block;height:100%;background:var(--green);border-radius:99px;transition:width .3s}
+  .pcard.warn .bar i{background:#e08a1e}
+  .pcard.lead{outline:3px solid var(--gold)}
+  .badge{position:absolute;top:14px;right:14px;font-size:12px;font-weight:800;padding:4px 9px;border-radius:99px;letter-spacing:.5px}
+  .badge.lead{background:var(--gold);color:#2a1d00}
+  .badge.out{background:var(--red);color:#fff}
+  .pcard.out{background:var(--redbg);color:var(--red);opacity:.9}
+  .pcard.out .name{text-decoration:line-through}
+  .pcard.out .bar i{background:var(--red)}
+  .pcard.out .left{color:var(--red)}
+  .pcard.winner{outline:4px solid var(--gold);transform:scale(1.03)}
+
+  /* Round entry */
+  .entry{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:14px}
+  .ein{background:rgba(255,255,255,.06);border-radius:12px;padding:10px}
+  .ein .lbl{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-weight:600}
+  .ein input{font-size:22px;font-weight:700;text-align:center}
+  .qbtn{padding:4px 10px;font-size:12px;border-radius:99px;background:transparent;color:var(--gold);border:1px solid var(--gold)}
+  .qbtn.on{background:var(--gold);color:#2a1d00}
+  .ein.quit input{background:#fff6dc}
+
+  .winner-banner{background:var(--gold);color:#2a1d00;text-align:center;font-size:clamp(20px,4vw,28px);font-weight:800;padding:18px;border-radius:14px;margin-bottom:18px}
+
+  /* History */
+  .tablewrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+  th,td{padding:8px 10px;text-align:center;border-bottom:1px solid rgba(255,255,255,.1);white-space:nowrap}
+  th{color:var(--gold);font-weight:700}
+  td.zero{color:#8fe3b0;font-weight:700}
+  tr.total td{font-weight:800;border-top:2px solid rgba(255,255,255,.3)}
+  td.over{color:#ff8a7e}
+  .footer-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+  .hidden{display:none}
+  @media (max-width:600px){
+    .wrap{padding:14px 12px 40px}
+    .panel{padding:14px}
+    .board{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .pcard{padding:12px 12px 14px;border-radius:14px}
+    .pcard .name{font-size:16px;padding-right:0}
+    .pcard .score{font-size:40px;margin:6px 0 4px}
+    .pcard .left{font-size:12px}
+    .badge{position:static;display:inline-block;font-size:10px;padding:2px 7px;margin-bottom:6px}
+    .entry{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .ein .lbl{flex-direction:column;align-items:flex-start;gap:6px}
+    .ein .lbl span{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+    .qbtn{padding:6px 12px;font-size:13px}
+    .ein input{font-size:24px;padding:10px}
+    #saveRound{flex:1}
+    .footer-actions button{flex:1 1 100%}
+    th,td{padding:8px 6px;font-size:14px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>♠ Quit Game <span>Scoreboard</span></h1>
+    <div class="row" id="topActions"></div>
+  </header>
+
+  <!-- SETUP -->
+  <section id="setup" class="panel">
+    <h2>Who's playing?</h2>
+    <div class="row">
+      <input id="nameInput" placeholder="Type a player name and press Enter" maxlength="20" autocomplete="off">
+      <button id="addBtn">Add</button>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div style="margin-top:16px;max-width:220px">
+      <label class="small" for="limitInput">Out when score goes above</label>
+      <input id="limitInput" type="number" min="1" value="100">
+    </div>
+    <div style="margin-top:16px" class="row">
+      <button id="startBtn" disabled>Start game</button>
+    </div>
+    <p class="hint">Need at least 2 players. Scores save automatically on this device, so a refresh won't lose them.</p>
+  </section>
+
+  <!-- GAME -->
+  <section id="game" class="hidden">
+    <div id="winner" class="winner-banner hidden"></div>
+    <div class="board" id="board"></div>
+
+    <div class="panel" id="entryPanel">
+      <h2 id="roundTitle">Round 1</h2>
+      <div class="entry" id="entry"></div>
+      <div class="row">
+        <button id="saveRound">Add round scores</button>
+        <button class="ghost" id="clearRound">Clear</button>
+      </div>
+      <p class="hint">Enter each player's card total. Tap <b>Quit ✓</b> for the player who quit correctly to give them 0. Empty boxes count as 0.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Round history</h2>
+      <div class="tablewrap"><table id="history"></table></div>
+      <div class="footer-actions" style="margin-top:14px">
+        <button class="ghost" id="undoBtn">↶ Undo last round</button>
+        <button class="ghost" id="rematchBtn">New game, same players</button>
+        <button class="danger" id="resetBtn">Change players</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+const KEY = "quitGameScoreboard.v1";
+let state = { players: [], limit: 100, rounds: [], started: false };
+
+function load(){ try{ const s = JSON.parse(localStorage.getItem(KEY)); if(s && Array.isArray(s.players)) state = s; }catch(e){} }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function totals(){
+  const t = state.players.map(() => 0);
+  state.rounds.forEach(r => r.forEach((v,i) => { if(v !== null) t[i] += v; }));
+  return t;
+}
+function isOut(total){ return total > state.limit; }
+
+/* ---------- Setup ---------- */
+function renderSetup(){
+  $("chips").innerHTML = state.players.map((p,i) =>
+    `<span class="chip">${esc(p)}<button title="Remove" data-rm="${i}">×</button></span>`).join("");
+  $("startBtn").disabled = state.players.length < 2;
+  $("limitInput").value = state.limit;
+}
+function addPlayer(){
+  const n = $("nameInput").value.trim();
+  if(!n) return;
+  if(state.players.some(p => p.toLowerCase() === n.toLowerCase())){ $("nameInput").select(); return; }
+  state.players.push(n); $("nameInput").value = ""; save(); renderSetup(); $("nameInput").focus();
+}
+$("addBtn").onclick = addPlayer;
+$("nameInput").addEventListener("keydown", e => { if(e.key === "Enter") addPlayer(); });
+$("chips").onclick = e => { const i = e.target.dataset.rm; if(i !== undefined){ state.players.splice(+i,1); save(); renderSetup(); } };
+$("limitInput").onchange = e => { const v = parseInt(e.target.value); state.limit = v > 0 ? v : 100; save(); };
+$("startBtn").onclick = () => { state.limit = parseInt($("limitInput").value) || 100; state.started = true; state.rounds = []; save(); render(); };
+
+/* ---------- Game ---------- */
+let quitIdx = null;
+
+function render(){
+  $("setup").classList.toggle("hidden", state.started);
+  $("game").classList.toggle("hidden", !state.started);
+  if(!state.started){ renderSetup(); return; }
+
+  const t = totals();
+  const activeIdx = state.players.map((_,i) => i).filter(i => !isOut(t[i]));
+  const gameOver = activeIdx.length <= 1;
+  const minActive = activeIdx.length ? Math.min(...activeIdx.map(i => t[i])) : null;
+
+  // Winner
+  const w = $("winner");
+  if(gameOver && activeIdx.length === 1){ w.textContent = `🏆 ${state.players[activeIdx[0]]} wins!`; w.classList.remove("hidden"); }
+  else if(gameOver){ w.textContent = "Everyone is out!"; w.classList.remove("hidden"); }
+  else w.classList.add("hidden");
+
+  // Board
+  $("board").innerHTML = state.players.map((p,i) => {
+    const out = isOut(t[i]);
+    const pct = Math.min(100, (t[i] / state.limit) * 100);
+    const lead = !out && !gameOver && state.rounds.length && t[i] === minActive;
+    const win = gameOver && activeIdx[0] === i;
+    const cls = ["pcard", out?"out":"", lead?"lead":"", win?"winner":"", (!out && pct>=75)?"warn":""].join(" ");
+    const badge = out ? `<span class="badge out">OUT</span>` : lead ? `<span class="badge lead">LOWEST</span>` : "";
+    const left = out ? `Out — crossed ${state.limit}` : `${state.limit - t[i]} left before out`;
+    return `<div class="${cls}">${badge}<div class="name" title="${esc(p)}">${esc(p)}</div>
+      <div class="score">${t[i]}</div><div class="left">${left}</div>
+      <div class="bar"><i style="width:${pct}%"></i></div></div>`;
+  }).join("");
+
+  // Entry
+  $("entryPanel").classList.toggle("hidden", gameOver);
+  $("roundTitle").textContent = `Round ${state.rounds.length + 1}`;
+  if(quitIdx !== null && !activeIdx.includes(quitIdx)) quitIdx = null;
+  $("entry").innerHTML = activeIdx.map(i => `
+    <div class="ein ${quitIdx===i?"quit":""}">
+      <div class="lbl"><span>${esc(state.players[i])}</span>
+        <button class="qbtn ${quitIdx===i?"on":""}" data-q="${i}">Quit ✓</button></div>
+      <input type="number" inputmode="numeric" min="0" data-p="${i}" placeholder="0" ${quitIdx===i?'value="0"':""}>
+    </div>`).join("");
+
+  // History
+  let h = `<tr><th>#</th>${state.players.map(p => `<th>${esc(p)}</th>`).join("")}</tr>`;
+  const run = state.players.map(() => 0);
+  state.rounds.forEach((r,ri) => {
+    h += `<tr><td>${ri+1}</td>${r.map((v,i) => {
+      if(v === null) return `<td>—</td>`;
+      run[i] += v; return `<td class="${v===0?"zero":""}">${v}</td>`;
+    }).join("")}</tr>`;
+  });
+  h += `<tr class="total"><td>Total</td>${t.map(v => `<td class="${isOut(v)?"over":""}">${v}</td>`).join("")}</tr>`;
+  $("history").innerHTML = state.rounds.length ? h : `<tr><td style="color:#cfd8d3">No rounds yet.</td></tr>`;
+  $("undoBtn").disabled = !state.rounds.length;
+}
+
+$("entry").addEventListener("click", e => {
+  const q = e.target.dataset.q;
+  if(q === undefined) return;
+  // keep typed values while toggling
+  const vals = {}; document.querySelectorAll("#entry input").forEach(inp => vals[inp.dataset.p] = inp.value);
+  const prevQuit = quitIdx;
+  quitIdx = (quitIdx === +q) ? null : +q;
+  render();
+  document.querySelectorAll("#entry input").forEach(inp => {
+    const p = +inp.dataset.p;
+    if(p === quitIdx) inp.value = "0";
+    else if(p === prevQuit) inp.value = "";
+    else inp.value = vals[p] || "";
+  });
+  const next = [...document.querySelectorAll("#entry input")].find(inp => +inp.dataset.p !== quitIdx && inp.value === "");
+  if(next) next.focus();
+});
+
+$("entry").addEventListener("keydown", e => {
+  if(e.key !== "Enter" || e.target.tagName !== "INPUT") return;
+  const ins = [...document.querySelectorAll("#entry input")];
+  const k = ins.indexOf(e.target);
+  if(k < ins.length - 1) ins[k+1].focus(); else saveRound();
+});
+
+function saveRound(){
+  const row = state.players.map(() => null);
+  let bad = false;
+  document.querySelectorAll("#entry input").forEach(inp => {
+    const v = inp.value.trim() === "" ? 0 : Number(inp.value);
+    if(!Number.isFinite(v) || v < 0){ bad = true; inp.style.borderColor = "var(--red)"; }
+    row[+inp.dataset.p] = Math.round(v);
+  });
+  if(bad) return;
+  state.rounds.push(row); quitIdx = null; save(); render();
+  const first = document.querySelector("#entry input"); if(first) first.focus();
+}
+$("saveRound").onclick = saveRound;
+$("clearRound").onclick = () => { quitIdx = null; render(); };
+$("undoBtn").onclick = e => { if(state.rounds.length && confirmLite(e.currentTarget, "Undo the last round?")){ state.rounds.pop(); save(); render(); } };
+$("rematchBtn").onclick = e => { if(confirmLite(e.currentTarget, "Start a new game with the same players? Current scores will be cleared.")){ state.rounds = []; quitIdx = null; save(); render(); } };
+$("resetBtn").onclick = e => { if(confirmLite(e.currentTarget, "Go back to choose players? Current scores will be cleared.")){ state.started = false; state.rounds = []; save(); render(); } };
+
+// Two-tap confirm that avoids browser pop-ups
+let pending = null, pendingTimer = null;
+function confirmLite(btn, msg){
+  if(pending === btn){ clearTimeout(pendingTimer); btn.textContent = btn.dataset.label; pending = null; return true; }
+  if(pending){ pending.textContent = pending.dataset.label; }
+  btn.dataset.label = btn.dataset.label || btn.textContent;
+  btn.textContent = "Tap again to confirm";
+  pending = btn;
+  pendingTimer = setTimeout(() => { btn.textContent = btn.dataset.label; pending = null; }, 3000);
+  return false;
+}
+
+load(); render();
+</script>
+</body>
+</html>
